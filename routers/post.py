@@ -1,9 +1,7 @@
-from models.post import Post,PostCreate,PostImageMapping
-from models.user import User
+from models.post import Post,PostImageMapping
 from fastapi import APIRouter,HTTPException,status,UploadFile,Form
 from database import SessionDep
 from security import UserDep
-from sqlmodel import select
 import cloudinary.uploader
 
 router = APIRouter(

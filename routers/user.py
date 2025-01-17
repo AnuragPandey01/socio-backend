@@ -4,7 +4,6 @@ from models.chat import *
 from database import SessionDep
 from security import create_token,Token,hash_password,verify_password,UserDep,verify_token
 from sqlmodel import select
-from pydantic import TypeAdapter
 from sqlalchemy import exc,or_,and_
 from services.connection_manager import connection_manager
 

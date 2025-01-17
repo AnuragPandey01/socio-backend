@@ -4,7 +4,7 @@ import time
 from pydantic import BaseModel
 from passlib.hash import bcrypt
 from typing import Annotated
-from fastapi import Depends, FastAPI, HTTPException,status
+from fastapi import Depends, HTTPException,status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from database import SessionDep
 from models.user import User
