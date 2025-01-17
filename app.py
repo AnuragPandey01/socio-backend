@@ -1,17 +1,19 @@
-import database
+import os
+
+import cloudinary
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-import os
-import routers.user 
-import routers.post
-import cloudinary
 
-cloudinary.config( 
-    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"), 
-    api_key = os.getenv("CLOUDINARY_API_KEY"), 
-    api_secret = os.getenv("CLOUDINARY_API_SECRET"),
-    secure=True
+import database
+import routers.post
+import routers.user
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True,
 )
 
 app = FastAPI()
@@ -31,9 +33,11 @@ database.create_db_and_tables()
 app.include_router(routers.user.router)
 app.include_router(routers.post.router)
 
+
 @app.get("/health-check")
 def health_check():
     return {"message": "server running..."}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
