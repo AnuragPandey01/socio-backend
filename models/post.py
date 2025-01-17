@@ -14,7 +14,7 @@ class Post(SQLModel,table=True):
     user: "User" = Relationship(back_populates="posts")
     #created_at = Field(default_factory=datetime.utcnow, nullable=False)
 
-    likes: list["User"] = Relationship(back_populates="liked_posts",cascade_delete=True,link_model=PostLikeMapping)
+    likes: list["User"] = Relationship(back_populates="liked_posts",link_model=PostLikeMapping)
 
 class PostCreate(SQLModel):
     text: str

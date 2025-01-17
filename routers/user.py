@@ -1,9 +1,12 @@
-from fastapi import APIRouter,HTTPException,status,Query,WebSocket
+from fastapi import APIRouter,HTTPException,status,WebSocket
 from models.user import *
+from models.chat import *
 from database import SessionDep
-from security import create_token,Token,hash_password,verify_password,UserDep
+from security import create_token,Token,hash_password,verify_password,UserDep,verify_token
 from sqlmodel import select
-from sqlalchemy import exc
+from pydantic import TypeAdapter
+from sqlalchemy import exc,or_,and_
+from services.connection_manager import connection_manager
 
 router = APIRouter(
     prefix="/user",
@@ -54,20 +57,6 @@ def login_user(userLogin: UserLogin,session: SessionDep):
 )
 def get_profile(user: UserDep):
     return user
-
-# @router.get("/feed")
-# def get_feed(
-#     user: UserDep,
-#     session: SessionDep,
-#     limit: int = Query(10), 
-#     offset: int = Query(0)
-# ):
-#     query = select(Post).join(
-#         UserFollowMapping,User.id == UserFollowMapping.following_id
-#     ).where(
-#         UserFollowMapping.follower_id == user.id,
-#         UserFollowMapping.status == RequestStatus.ACCEPTED
-#     ).order_by(Post.)
     
 
 @router.post("/{user_id}/follow",status_code=status.HTTP_201_CREATED)
@@ -180,9 +169,59 @@ def get_follow_requests(user: UserDep,session: SessionDep):
     return follow_requests
 
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        await websocket.send_text(f"Message text was: {data}")
+async def websocket_endpoint(websocket: WebSocket,session: SessionDep):
 
+    if "access_token" not in websocket.headers:
+            await websocket.close(code=4001, reason="Missing access_token header")
+            return
+
+    access_token = websocket.headers["access_token"].split(" ")[1]
+
+    try:
+        payload = verify_token(access_token)
+    except Exception as e:
+        await websocket.close(code=4002, reason=f"Invalid token: {str(e)}")
+        return
+
+    user = session.get(User,payload["sub"])
+    
+    await connection_manager.connect(user.id,websocket)
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+            try:
+                message_data: SendMessage = SendMessage.model_validate(data)
+                new_msg = Chat(
+                    sender_id=user.id,  
+                    receiver_id=message_data.receiver_id,
+                    message=message_data.message
+                )
+                session.add(new_msg)
+                session.commit()
+                session.refresh(new_msg)
+
+                await connection_manager.send_message(message_data.receiver_id,new_msg.model_dump_json())
+                await connection_manager.send_message(user.id,new_msg.model_dump_json())
+            
+            except Exception as e:
+                await websocket.send_json({"error": str(e)})
+    except Exception as e:
+        print(f"connection closed for user {user.id}: {e}")
+        await websocket.close(code=1011, reason="Internal server error")
+    finally:
+        connection_manager.disconnect(user.id)
+
+
+@router.get("/chat-history/{user_id}",response_model=list[Chat])
+def get_chat_history(session: SessionDep,user:UserDep,user_id: str):
+    chats = session.exec(
+        select(Chat).where(
+            or_(
+                and_(Chat.sender_id == user_id,Chat.receiver_id == user.id),
+                and_(Chat.sender_id == user.id, Chat.receiver_id == user_id)
+            )
+        ).order_by(Chat.created_at)
+    ).all()
+
+    return chats

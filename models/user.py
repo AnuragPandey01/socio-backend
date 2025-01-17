@@ -3,7 +3,6 @@ from pydantic import EmailStr
 from models.post import Post,PostPublic,PostLikeMapping
 import uuid
 from enum import Enum
-from sqlalchemy import and_
 
 
 class RequestStatus(str, Enum):
@@ -26,8 +25,7 @@ class User(SQLModel,table=True):
     bio: str = Field(nullable=True)
     profile_image: str = Field(nullable=True)
     posts: list[Post] = Relationship(
-        back_populates="user",
-        cascade_delete=True
+        back_populates="user"
     )
     liked_posts: list[Post] = Relationship(
         back_populates="likes",
