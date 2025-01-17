@@ -64,7 +64,7 @@ def delete_post(post_id: str, session: SessionDep, user: UserDep):
 
 
 @router.post("/{post_id}/like")
-def like_post(post_id: str, session: SessionDep, user: UserDep):
+def like_post(post_id: str, session: SessionDep, _: UserDep):
     post = session.get(Post, post_id)
     if not post:
         raise HTTPException(

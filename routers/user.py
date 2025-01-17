@@ -1,10 +1,20 @@
 from fastapi import APIRouter, HTTPException, WebSocket, status
 from sqlalchemy import and_, exc, or_
 from sqlmodel import select
-
 from database import SessionDep
-from models.chat import *
-from models.user import *
+from models.chat import (
+    Chat,
+    SendMessage
+)
+from models.user import (
+    User,
+    UserCreate,
+    UserLogin,
+    UserPublic,
+    UserWithPosts,
+    UserFollowMapping,
+    RequestStatus
+)
 from security import (
     Token,
     UserDep,
@@ -14,6 +24,7 @@ from security import (
     verify_token,
 )
 from services.connection_manager import connection_manager
+
 
 router = APIRouter(
     prefix="/user",
