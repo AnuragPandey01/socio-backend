@@ -1,6 +1,8 @@
-from fastapi import WebSocket
-from typing import Dict
 import uuid
+from typing import Dict
+
+from fastapi import WebSocket
+
 
 class ConnectionManager:
     def __init__(self):
@@ -22,6 +24,7 @@ class ConnectionManager:
     async def broadcast_message(self, message):
         for connection in self.active_connections.values():
             await connection.send_json(message)
+
 
 # Initialize the manager
 connection_manager = ConnectionManager()
