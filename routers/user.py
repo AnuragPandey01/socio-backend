@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, WebSocket, status
+from fastapi import APIRouter, HTTPException, WebSocket, status, Query
 from sqlalchemy import and_, exc, or_
 from sqlmodel import select
 from database import SessionDep
@@ -39,7 +39,7 @@ def register_user(userCreate: UserCreate, session: SessionDep):
             first_name=userCreate.first_name,
             last_name=userCreate.last_name,
             email=userCreate.email,
-            username=userCreate.username,
+            username=userCreate.username.lower(),
             password=hash_password(userCreate.password),
             bio=userCreate.bio,
             profile_image=userCreate.profile_image,
@@ -109,7 +109,13 @@ def reject_follow_request(user_id: str, user: UserDep, session: SessionDep):
 
 
 @router.get("/{user_id}/followers", response_model=list[UserPublic])
-def get_followers(user_id: str, user: UserDep, session: SessionDep):
+def get_followers(
+    user_id: str,
+    user: UserDep,
+    session: SessionDep,
+    limit:int=Query(10,ge=1,le=100),
+    page:int=Query(1,ge=1)
+):
     user_to_get = session.get(User, user_id)
     if not user_to_get:
         raise HTTPException(
@@ -131,6 +137,8 @@ def get_followers(user_id: str, user: UserDep, session: SessionDep):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorised"
             )
+        
+    offset = (page-1)*limit
 
     followers = session.exec(
         select(User)
@@ -138,13 +146,19 @@ def get_followers(user_id: str, user: UserDep, session: SessionDep):
         .where(
             UserFollowMapping.following_id == user_id,
             UserFollowMapping.status == RequestStatus.ACCEPTED,
-        )
+        ).offset(offset).limit(limit)
     ).all()
     return followers
 
 
 @router.get("/{user_id}/following", response_model=list[UserPublic])
-def get_following(user_id: str, user: UserDep, session: SessionDep):
+def get_following(
+    user_id: str,
+    user: UserDep,
+    session: SessionDep,
+    limit:int=Query(10,ge=1,le=100),
+    page:int=Query(1,ge=1)
+):
     user_to_get = session.get(User, user_id)
     if not user_to_get:
         raise HTTPException(
@@ -166,6 +180,8 @@ def get_following(user_id: str, user: UserDep, session: SessionDep):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorised"
             )
+        
+    offset = (page-1)*limit
 
     following = session.exec(
         select(User)
@@ -173,7 +189,7 @@ def get_following(user_id: str, user: UserDep, session: SessionDep):
         .where(
             UserFollowMapping.follower_id == user_id,
             UserFollowMapping.status == RequestStatus.ACCEPTED,
-        )
+        ).offset(offset).limit(limit)
     ).all()
 
     return following
@@ -204,6 +220,21 @@ def get_follow_requests(user: UserDep, session: SessionDep):
     ).all()
 
     return follow_requests
+
+
+@router.get("/search",response_model=list[UserPublic])
+def search_user(
+    session: SessionDep,
+    search_param : str = Query(None),
+    limit: int = Query(10, le=100, ge=1),
+    page: int = Query(1, ge=1)
+):
+    if not search_param: 
+        return []
+    offset = limit*(page-1)
+    query = select(User).where(User.username.startswith(search_param.lower())).offset(offset).limit(limit)
+    users = session.exec(query).all()
+    return users
 
 
 @router.websocket("/ws")

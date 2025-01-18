@@ -32,7 +32,7 @@ class User(SQLModel,table=True):
     first_name: str = Field(nullable=False)
     last_name: str = Field(nullable=False)
     email: EmailStr = Field(nullable=False, unique=True)
-    username: str = Field(nullable=False, unique=True)
+    username: str = Field(nullable=False, unique=True,index=True)
     password: str = Field()
     bio: str = Field(nullable=True)
     profile_image: str = Field(nullable=True)
