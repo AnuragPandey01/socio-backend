@@ -1,20 +1,9 @@
-from fastapi import APIRouter, HTTPException, WebSocket, status, Query
+from fastapi import APIRouter, HTTPException, Query, WebSocket, status
 from sqlalchemy import and_, exc, or_
 from sqlmodel import select
 from database import SessionDep
-from models.chat import (
-    Chat,
-    SendMessage
-)
-from models.user import (
-    User,
-    UserCreate,
-    UserLogin,
-    UserPublic,
-    UserWithPosts,
-    UserFollowMapping,
-    RequestStatus
-)
+from models import Chat, User, UserFollowMapping, RequestStatus
+from schema import SendMessage, UserCreate, UserLogin, UserPublic, UserWithPosts
 from security import (
     Token,
     UserDep,
@@ -113,8 +102,8 @@ def get_followers(
     user_id: str,
     user: UserDep,
     session: SessionDep,
-    limit:int=Query(10,ge=1,le=100),
-    page:int=Query(1,ge=1)
+    limit: int = Query(10, ge=1, le=100),
+    page: int = Query(1, ge=1),
 ):
     user_to_get = session.get(User, user_id)
     if not user_to_get:
@@ -137,8 +126,8 @@ def get_followers(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorised"
             )
-        
-    offset = (page-1)*limit
+
+    offset = (page - 1) * limit
 
     followers = session.exec(
         select(User)
@@ -146,7 +135,9 @@ def get_followers(
         .where(
             UserFollowMapping.following_id == user_id,
             UserFollowMapping.status == RequestStatus.ACCEPTED,
-        ).offset(offset).limit(limit)
+        )
+        .offset(offset)
+        .limit(limit)
     ).all()
     return followers
 
@@ -156,8 +147,8 @@ def get_following(
     user_id: str,
     user: UserDep,
     session: SessionDep,
-    limit:int=Query(10,ge=1,le=100),
-    page:int=Query(1,ge=1)
+    limit: int = Query(10, ge=1, le=100),
+    page: int = Query(1, ge=1),
 ):
     user_to_get = session.get(User, user_id)
     if not user_to_get:
@@ -180,8 +171,8 @@ def get_following(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorised"
             )
-        
-    offset = (page-1)*limit
+
+    offset = (page - 1) * limit
 
     following = session.exec(
         select(User)
@@ -189,7 +180,9 @@ def get_following(
         .where(
             UserFollowMapping.follower_id == user_id,
             UserFollowMapping.status == RequestStatus.ACCEPTED,
-        ).offset(offset).limit(limit)
+        )
+        .offset(offset)
+        .limit(limit)
     ).all()
 
     return following
@@ -222,17 +215,22 @@ def get_follow_requests(user: UserDep, session: SessionDep):
     return follow_requests
 
 
-@router.get("/search",response_model=list[UserPublic])
+@router.get("/search", response_model=list[UserPublic])
 def search_user(
     session: SessionDep,
-    search_param : str = Query(None),
+    search_param: str = Query(None),
     limit: int = Query(10, le=100, ge=1),
-    page: int = Query(1, ge=1)
+    page: int = Query(1, ge=1),
 ):
-    if not search_param: 
+    if not search_param:
         return []
-    offset = limit*(page-1)
-    query = select(User).where(User.username.startswith(search_param.lower())).offset(offset).limit(limit)
+    offset = limit * (page - 1)
+    query = (
+        select(User)
+        .where(User.username.startswith(search_param.lower()))
+        .offset(offset)
+        .limit(limit)
+    )
     users = session.exec(query).all()
     return users
 

@@ -9,8 +9,3 @@ class Chat(SQLModel,table=True):
     receiver_id: uuid.UUID = Field(foreign_key="user.id", nullable=False)
     message: str = Field(nullable=False)
     created_at : datetime = Field(default_factory=datetime.utcnow)
-
-
-class SendMessage(SQLModel):
-    receiver_id: uuid.UUID
-    message: str

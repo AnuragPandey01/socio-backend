@@ -28,6 +28,8 @@ app.add_middleware(
 
 database.create_db_and_tables()
 
+
+
 app.include_router(routers.user.router)
 app.include_router(routers.post.router)
 

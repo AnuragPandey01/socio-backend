@@ -1,8 +1,8 @@
 import cloudinary.uploader
 from fastapi import APIRouter, Form, HTTPException, UploadFile, status
-
 from database import SessionDep
-from models.post import Post, PostImageMapping
+from models import Post, PostImageMapping, Comment
+from schema import PostCreate, CommentWithUser
 from security import UserDep
 
 router = APIRouter(
@@ -70,3 +70,26 @@ def like_post(post_id: str, session: SessionDep, _: UserDep):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Post not found"
         )
+    
+    
+@router.post("/{post_id}/comment",status_code=status.HTTP_201_CREATED,response_model=Comment)
+def add_comment_to_post(post_data:PostCreate, post_id: str, session: SessionDep, user: UserDep):
+
+    post = session.get(Post,post_id)
+    if not post:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="post not found")
+    
+    comment = Comment(text=post_data.text, user_id=user.id, post_id=post_id)
+    session.add(comment)
+    session.commit()
+    session.refresh(comment)
+    return comment
+
+
+@router.get("/{post_id}/comments",response_model=list[CommentWithUser])
+def get_post_comments(post_id: str, session: SessionDep):
+    post = session.get(Post,post_id)
+    if not post:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="post not found")
+    
+    return post.comments
