@@ -5,7 +5,7 @@ from models.post_like_mapping import PostLikeMapping
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from models import PostLikeMapping, Post, Comment
+    from models import Post, Comment
 
 
 class User(SQLModel, table=True):
