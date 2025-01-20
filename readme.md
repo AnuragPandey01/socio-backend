@@ -76,6 +76,9 @@ anuragpandey01-socio-backend/
    uvicorn app:app --reload
    ```
 
+## Live Project
+The project is now live and can be accessed at: [socio](http://socio.droidev.xyz/).
+
 ## 📝 Contribution Guidelines
 - Use `ruff` for code formatting and `isort` for import organization.
 - Run static code analysis using [DeepSource](https://deepsource.io/).
