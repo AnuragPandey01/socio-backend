@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, WebSocket, status
+from fastapi import APIRouter, HTTPException, Query, WebSocket, status, UploadFile
 from sqlalchemy import and_, exc, or_
 from sqlmodel import select
 from database import SessionDep
@@ -13,7 +13,8 @@ from security import (
     verify_token,
 )
 from services.connection_manager import connection_manager
-
+from utils import extract_public_id
+import cloudinary.uploader
 
 router = APIRouter(
     prefix="/user",
@@ -233,6 +234,27 @@ def search_user(
     )
     users = session.exec(query).all()
     return users
+
+@router.post("/update-profile-img",response_model=UserPublic)
+async def update_profile_picture(session: SessionDep, user: UserDep,image: UploadFile):
+
+    #destroy old profile image
+    if user.profile_image:
+        cloudinary.uploader.destroy(public_id=f"profile/{extract_public_id(user.profile_image)}")
+    
+    if image and image.content_type not in ["image/jpeg", "image/png"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid image format. Only JPEG and PNG are allowed.",
+        )
+    
+    upload_res = cloudinary.uploader.upload(image.file,folder = "profile")
+    profile_img_url = upload_res.get("secure_url")
+    user.profile_image = profile_img_url
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
 
 
 @router.websocket("/ws")
