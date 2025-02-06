@@ -1,4 +1,3 @@
-import database
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -25,9 +24,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
-
-database.create_db_and_tables()
-
 
 
 app.include_router(routers.user.router)
